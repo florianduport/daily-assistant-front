@@ -1,43 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const WeekSelector: React.FC = () => {
-  const { selectedWeekStart, setSelectedWeekStart, setSelectedWeekEnd } = useAppContext();
-  
+  const { setSelectedWeekStart, setSelectedWeekEnd } = useAppContext();
+  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 6 }));
+
+  const updateWeek = (newWeekStart: Date) => {
+    const newWeekEnd = endOfWeek(newWeekStart, { weekStartsOn: 6 });
+    setCurrentWeekStart(newWeekStart);
+    setSelectedWeekStart(newWeekStart);
+    setSelectedWeekEnd(newWeekEnd);
+  };
+
   const goToPreviousWeek = () => {
-    const newWeekStart = subWeeks(selectedWeekStart, 1);
-    const newWeekEnd = endOfWeek(newWeekStart, { weekStartsOn: 1 });
-    setSelectedWeekStart(newWeekStart);
-    setSelectedWeekEnd(newWeekEnd);
+    const newWeekStart = subWeeks(currentWeekStart, 1);
+    updateWeek(newWeekStart);
   };
-  
+
   const goToNextWeek = () => {
-    const newWeekStart = addWeeks(selectedWeekStart, 1);
-    const newWeekEnd = endOfWeek(newWeekStart, { weekStartsOn: 1 });
-    setSelectedWeekStart(newWeekStart);
-    setSelectedWeekEnd(newWeekEnd);
+    const newWeekStart = addWeeks(currentWeekStart, 1);
+    updateWeek(newWeekStart);
   };
-  
+
   const goToCurrentWeek = () => {
     const today = new Date();
-    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-    const currentWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
-    setSelectedWeekStart(currentWeekStart);
-    setSelectedWeekEnd(currentWeekEnd);
+    const currentWeekStart = startOfWeek(today, { weekStartsOn: 6 });
+    updateWeek(currentWeekStart);
   };
-  
-  const weekStartFormatted = format(selectedWeekStart, 'd MMMM', { locale: fr });
-  const weekEndFormatted = format(endOfWeek(selectedWeekStart, { weekStartsOn: 1 }), 'd MMMM yyyy', { locale: fr });
-  
+
+  const weekStartFormatted = format(currentWeekStart, 'd MMMM', { locale: fr });
+  const weekEndFormatted = format(endOfWeek(currentWeekStart, { weekStartsOn: 6 }), 'd MMMM yyyy', { locale: fr });
+
   const isCurrentWeek = () => {
     const today = new Date();
-    const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-    return format(selectedWeekStart, 'yyyy-MM-dd') === format(currentWeekStart, 'yyyy-MM-dd');
+    const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 });
+    return currentWeekStart.getTime() === startOfCurrentWeek.getTime();
   };
-  
+
   return (
     <div className="flex items-center justify-between bg-white rounded-lg shadow-sm p-3 mb-4">
       <button
@@ -47,12 +49,12 @@ const WeekSelector: React.FC = () => {
       >
         <ChevronLeft size={20} />
       </button>
-      
+
       <div className="text-center">
         <div className="text-sm font-medium">
           {weekStartFormatted} - {weekEndFormatted}
         </div>
-        
+
         {!isCurrentWeek() && (
           <button
             onClick={goToCurrentWeek}
@@ -62,7 +64,7 @@ const WeekSelector: React.FC = () => {
           </button>
         )}
       </div>
-      
+
       <button
         onClick={goToNextWeek}
         className="p-1 rounded-full hover:bg-gray-100"

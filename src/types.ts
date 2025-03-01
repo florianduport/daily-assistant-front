@@ -55,17 +55,9 @@ export interface Routine {
   id: string;
   title: string;
   type: 'morning' | 'night';
-  activities: Activity[];
+  tasks: Task[];
   weekStart: string; // ISO date string
   weekEnd: string; // ISO date string
-}
-
-export interface Activity {
-  id: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  description?: string;
 }
 
 export interface WeeklyGoal {

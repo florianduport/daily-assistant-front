@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useAppContext } from '../context/AppContext';
 import RoutineCard from '../components/RoutineCard';
@@ -7,70 +7,91 @@ import WorkoutCard from '../components/WorkoutCard';
 import MealPlanSummary from '../components/MealPlanSummary';
 import GoalsList from '../components/GoalsList';
 import WeekSelector from '../components/WeekSelector';
-
-interface Task {
-  _id: string;
-  title: string;
-  // Ajoutez d'autres propriétés nécessaires ici
-}
+import { fetchFromAPI } from '../utils/apiUtil';
+import { Task, Routine } from '../types'; // Importation de l'interface Task et Routine depuis types.ts
 
 const HomePage: React.FC = () => {
-  const { 
-    morningRoutine, 
-    nightRoutine, 
-    workouts, 
-    mealPlan, 
-    weeklyGoals,
-    selectedWeekStart,
-    selectedWeekEnd
+  const {
+    workouts,
+    mealPlan,
+    weeklyGoals
   } = useAppContext();
 
-  const [morningRoutineTasks, setMorningRoutineTasks] = useState<Task[]>([]);
+  const [morningRoutine, setMorningRoutine] = useState<Routine | null>(null);
+  const [nightRoutine, setNightRoutine] = useState<Routine | null>(null);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 6 }));
+
+  const weekStart = new Date(startOfWeek(selectedWeekStart, { weekStartsOn: 6 }).getTime() + 3600000);
 
   useEffect(() => {
-    const fetchMorningRoutineTasks = async () => {
+    const fetchRoutines = async () => {
       try {
-        const response = await fetch(`/api/morning-routine-tasks?start=${selectedWeekStart.toISOString()}&end=${selectedWeekEnd.toISOString()}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch tasks');
-        }
-        const data = await response.json();
-        setMorningRoutineTasks(data);
+        // Correction de la date envoyée à l'API pour correspondre à la date de début de semaine correcte
+        const data = await fetchFromAPI(`task-list/routines/by-week-start-date?weekStartDate=${weekStart.toISOString().split('T')[0]}`);
+
+        // Parcourir les routines retournées par l'API
+        data.forEach((routineData: any) => {
+          // Utilisation uniquement des tâches du premier jour dans le tableau weekDays
+          const firstDayTasks = routineData.weekDays[0]?.tasks || [];
+
+          // Transformation des données de l'API en format Routine
+          const transformedRoutine: Routine = {
+            id: routineData._id,
+            title: routineData.type === 'morning' ? 'Routine Matinale' : 'Routine Nocturne',
+            type: routineData.type,
+            tasks: firstDayTasks.map((task: any) => ({
+              _id: task._id,
+              title: task.title,
+              description: task.description,
+              startTime: task.startTime,
+              endTime: task.endTime,
+              isCompleted: task.isCompleted,
+              type: 'routine',
+              day: task.dateAssigned.split('T')[0]
+            })),
+            weekStart: routineData.weekStartDate,
+            weekEnd: new Date(new Date(routineData.weekStartDate).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          };
+
+          // Affecter la routine transformée à la routine correspondante
+          if (routineData.type === 'morning') {
+            setMorningRoutine(transformedRoutine);
+          } else if (routineData.type === 'night') {
+            setNightRoutine(transformedRoutine);
+          }
+        });
       } catch (error) {
-        console.error('Error fetching morning routine tasks:', error);
+        console.error('Erreur lors de la récupération des routines :', error);
       }
     };
 
-    fetchMorningRoutineTasks();
-  }, [selectedWeekStart, selectedWeekEnd]);
+    fetchRoutines();
+  }, [selectedWeekStart]);
+
+  const weekEnd = endOfWeek(selectedWeekStart, { weekStartsOn: 6 });
 
   return (
     <div className="container mx-auto px-4 py-6">
       <h2 className="text-2xl font-bold mb-4">
-        Semaine du {format(selectedWeekStart, 'd MMMM yyyy', { locale: fr })}
+        Semaine du {format(weekStart, 'd MMMM yyyy', { locale: fr })} au {format(weekEnd, 'd MMMM yyyy', { locale: fr })}
       </h2>
-      
+
       <WeekSelector />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <h3 className="text-xl font-semibold mb-3">Routines</h3>
-          <RoutineCard routine={morningRoutine} />
-          <ul>
-            {morningRoutineTasks.map(task => (
-              <li key={task._id}>{task.title}</li>
-            ))}
-          </ul>
-          <RoutineCard routine={nightRoutine} />
+          {morningRoutine && <RoutineCard routine={morningRoutine} />}
+          {nightRoutine && <RoutineCard routine={nightRoutine} />}
         </div>
-        
+
         <div>
           <h3 className="text-xl font-semibold mb-3">Objectifs & Nutrition</h3>
           <GoalsList goals={weeklyGoals} />
           <MealPlanSummary mealPlan={mealPlan} />
         </div>
       </div>
-      
+
       <div className="mt-6">
         <h3 className="text-xl font-semibold mb-3">Entraînements de la semaine</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
