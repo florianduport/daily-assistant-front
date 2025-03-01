@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { format, addWeeks, subWeeks, startOfWeek, endOfWeek } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
 
-const WeekSelector: React.FC = () => {
-  const { setSelectedWeekStart, setSelectedWeekEnd } = useAppContext();
+interface WeekSelectorProps {
+  setSelectedWeekStart: React.Dispatch<React.SetStateAction<Date>>;
+}
+
+const WeekSelector: React.FC<WeekSelectorProps> = ({ setSelectedWeekStart }) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 6 }));
 
   const updateWeek = (newWeekStart: Date) => {
-    const newWeekEnd = endOfWeek(newWeekStart, { weekStartsOn: 6 });
     setCurrentWeekStart(newWeekStart);
     setSelectedWeekStart(newWeekStart);
-    setSelectedWeekEnd(newWeekEnd);
   };
 
   const goToPreviousWeek = () => {

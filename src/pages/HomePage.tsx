@@ -21,13 +21,18 @@ const HomePage: React.FC = () => {
   const [nightRoutine, setNightRoutine] = useState<Routine | null>(null);
   const [selectedWeekStart, setSelectedWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 6 }));
 
-  const weekStart = new Date(startOfWeek(selectedWeekStart, { weekStartsOn: 6 }).getTime() + 3600000);
-
   useEffect(() => {
     const fetchRoutines = async () => {
       try {
-        // Correction de la date envoyée à l'API pour correspondre à la date de début de semaine correcte
-        const data = await fetchFromAPI(`task-list/routines/by-week-start-date?weekStartDate=${weekStart.toISOString().split('T')[0]}`);
+        // Utilisation de la date de début de semaine sélectionnée pour l'appel API
+        const data = await fetchFromAPI(`task-list/routines/by-week-start-date?weekStartDate=${new Date(selectedWeekStart.getTime() + 1 * 60 * 60 * 1000).toISOString().split('T')[0]}`);
+
+        // Si pas de données ou tableau vide, vider les routines précédemment chargées
+        if (!data || data.length === 0) {
+          setMorningRoutine(null);
+          setNightRoutine(null);
+          return;
+        }
 
         // Parcourir les routines retournées par l'API
         data.forEach((routineData: any) => {
@@ -73,10 +78,10 @@ const HomePage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-6">
       <h2 className="text-2xl font-bold mb-4">
-        Semaine du {format(weekStart, 'd MMMM yyyy', { locale: fr })} au {format(weekEnd, 'd MMMM yyyy', { locale: fr })}
+        Semaine du {format(selectedWeekStart, 'd MMMM yyyy', { locale: fr })} au {format(weekEnd, 'd MMMM yyyy', { locale: fr })}
       </h2>
 
-      <WeekSelector />
+      <WeekSelector setSelectedWeekStart={setSelectedWeekStart} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
