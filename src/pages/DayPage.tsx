@@ -7,7 +7,7 @@ import { fetchFromAPI } from '../utils/apiUtil';
 
 const DayPage: React.FC = () => {
   const { dateString } = useParams<{ dateString: string }>();
-  const [date, setDate] = useState(() => 
+  const [date, setDate] = useState(() =>
     dateString ? parse(dateString, 'yyyy-MM-dd', new Date()) : new Date()
   );
   const [tasksForDay, setTasksForDay] = useState<any[]>([]);
@@ -18,7 +18,7 @@ const DayPage: React.FC = () => {
     const fetchTasks = async () => {
       try {
         const formattedDate = format(date, 'yyyy-MM-dd');
-        const tasks = await fetchFromAPI(`tasks/today?date=${formattedDate}`);
+        const tasks = await fetchFromAPI(`task-list/tasks/today?date=${formattedDate}`);
         setTasksForDay(tasks);
       } catch (error) {
         console.error('Error fetching tasks:', error);
@@ -31,7 +31,7 @@ const DayPage: React.FC = () => {
   const fetchJournalNotes = async () => {
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      const response = await fetchFromAPI(`journals/today?date=${formattedDate}`);
+      const response = await fetchFromAPI(`task-list/journals/today?date=${formattedDate}`);
       if (response) {
         setJournalNotes(response.notes);
         setJournalId(response._id);
@@ -52,8 +52,7 @@ const DayPage: React.FC = () => {
       const taskToUpdate = tasksForDay.find(task => task._id === taskId);
       if (taskToUpdate) {
         const updatedTask = { ...taskToUpdate, isCompleted: isChecked };
-        const formattedDate = format(date, 'yyyy-MM-dd');
-        await fetchFromAPI(`tasks/${taskId}/today?date=${formattedDate}`, {
+        await fetchFromAPI(`task-list/tasks/${taskId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -74,7 +73,7 @@ const DayPage: React.FC = () => {
   const handleTaskDeletion = async (taskId: string) => {
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      await fetchFromAPI(`tasks/${taskId}/today?date=${formattedDate}`, {
+      await fetchFromAPI(`task-list/tasks/${taskId}/today?date=${formattedDate}`, {
         method: 'DELETE',
       });
       setTasksForDay(prevTasks => prevTasks.filter(task => task._id !== taskId));
@@ -88,7 +87,7 @@ const DayPage: React.FC = () => {
       const formattedDate = format(date, 'yyyy-MM-dd');
       if (journalId) {
         // Update existing journal entry
-        await fetchFromAPI(`journals/${journalId}/today?date=${formattedDate}`, {
+        await fetchFromAPI(`task-list/journals/${journalId}/today?date=${formattedDate}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -98,7 +97,7 @@ const DayPage: React.FC = () => {
         setJournalNotes(content);
       } else {
         // Create new journal entry
-        const response = await fetchFromAPI('journals', {
+        const response = await fetchFromAPI('task-list/journals', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -123,7 +122,7 @@ const DayPage: React.FC = () => {
     if (!journalId) return;
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
-      await fetchFromAPI(`journals/${journalId}/today?date=${formattedDate}`, {
+      await fetchFromAPI(`task-list/journals/${journalId}/today?date=${formattedDate}`, {
         method: 'DELETE',
       });
       setJournalNotes(null);
@@ -132,20 +131,20 @@ const DayPage: React.FC = () => {
       console.error('Error deleting journal notes:', error);
     }
   };
-  
+
   return (
     <div className="container mx-auto px-4 py-6">
-      <DaySchedule 
-        date={date} 
-        tasks={tasksForDay} 
-        onTaskComplete={handleTaskCompletion} 
-        onTaskDelete={handleTaskDeletion} 
+      <DaySchedule
+        date={date}
+        tasks={tasksForDay}
+        onTaskComplete={handleTaskCompletion}
+        onTaskDelete={handleTaskDeletion}
       />
-      <JournalEditor 
-        date={date} 
-        initialContent={journalNotes || ''} 
-        onSave={handleSaveJournal} 
-        onDelete={handleDeleteJournal} 
+      <JournalEditor
+        date={date}
+        initialContent={journalNotes || ''}
+        onSave={handleSaveJournal}
+        onDelete={handleDeleteJournal}
       />
     </div>
   );
